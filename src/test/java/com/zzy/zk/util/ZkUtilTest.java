@@ -4,6 +4,8 @@ import java.io.IOException;
 
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
@@ -42,13 +44,34 @@ public class ZkUtilTest {
         }
     }
 
+    @Test
     public void testGet() throws InterruptedException {
         ZooKeeper zk = null;
         String path = "/test";
-        String data = "zzy test";
         try {
             zk = ZkUtil.getZkConnection(HOST);
             Stat stat = zk.exists(path, false);
+            if (null != stat) {
+                byte[] dataByte = zk.getData(path, new Watcher() {
+                    @Override
+                    public void process(WatchedEvent event) {
+                        if (event.getType() == Event.EventType.None) {
+                            switch (event.getState()) {
+                                case Expired:
+                                    System.out.println("expired");
+                                    break;
+                            }
+                        } else {
+                            System.out.println("else");
+                        }
+                    }
+
+                }, null);
+                String data = new String(dataByte, "UTF-8");
+                System.out.println(data);
+            } else {
+                System.out.println("Node does not exists");
+            }
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
